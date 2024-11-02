@@ -71,17 +71,16 @@ class Assignment(db.Model):
 
         return assignment
 
-
     @classmethod
-    def mark_grade(cls, _id, grade, auth_principal: AuthPrincipal):
-        assignment = Assignment.get_by_id(_id)
-        assertions.assert_found(assignment, 'No assignment with this id was found')
-        assertions.assert_valid(grade is not None, 'assignment with empty grade cannot be graded')
-
+    def mark_grade(cls, _id, grade, auth_principal):
+        assignment = cls.query.filter_by(id=_id, teacher_id=auth_principal.teacher_id).first()
+        if not assignment:
+            raise ValueError("Assignment not found or not assigned to this teacher")
+        if assignment.state != 'SUBMITTED':
+            raise ValueError("Only submitted assignments can be graded")
         assignment.grade = grade
-        assignment.state = AssignmentStateEnum.GRADED
-        db.session.flush()
-
+        assignment.state = 'GRADED'
+        db.session.commit()
         return assignment
 
     @classmethod
@@ -89,5 +88,5 @@ class Assignment(db.Model):
         return cls.filter(cls.student_id == student_id).all()
 
     @classmethod
-    def get_assignments_by_teacher(cls):
-        return cls.query.all()
+    def get_assignments_by_teacher(cls, teacher_id):
+        return cls.query.filter_by(teacher_id=teacher_id).filter(Assignment.state.in_(['SUBMITTED', 'GRADED'])).all()

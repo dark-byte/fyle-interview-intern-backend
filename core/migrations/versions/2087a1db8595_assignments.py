@@ -7,12 +7,10 @@ Create Date: 2021-09-16 10:11:14.484440
 """
 from alembic import op
 import sqlalchemy as sa
-from core import db
-from core.apis.decorators import AuthPrincipal
-from core.models.users import User
-from core.models.students import Student
-from core.models.teachers import Teacher
-from core.models.assignments import Assignment
+from sqlalchemy.sql import table, column
+from sqlalchemy import String, Integer, Enum, Text, TIMESTAMP
+from core.models.assignments import AssignmentStateEnum, GradeEnum
+from datetime import datetime
 
 # revision identifiers, used by Alembic.
 revision = '2087a1db8595'
@@ -26,16 +24,16 @@ def upgrade():
     op.create_table('students',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('created_at', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('updated_at', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False),
+    sa.Column('updated_at', sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('teachers',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('created_at', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('updated_at', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False),
+    sa.Column('updated_at', sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -44,60 +42,77 @@ def upgrade():
     sa.Column('student_id', sa.Integer(), nullable=False),
     sa.Column('teacher_id', sa.Integer(), nullable=True),
     sa.Column('content', sa.Text(), nullable=True),
-    sa.Column('grade', sa.Enum('A', 'B', 'C', 'D', name='gradeenum'), nullable=True),
-    sa.Column('state', sa.Enum('DRAFT', 'SUBMITTED', name='assignmentstateenum'), nullable=True),
-    sa.Column('created_at', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('updated_at', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('grade', sa.Enum(GradeEnum), nullable=True),
+    sa.Column('state', sa.Enum(AssignmentStateEnum), nullable=True),
+    sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False),
+    sa.Column('updated_at', sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False),
     sa.ForeignKeyConstraint(['student_id'], ['students.id'], ),
     sa.ForeignKeyConstraint(['teacher_id'], ['teachers.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
 
-    student_1 = Student(user_id=User.get_by_email('student1@fylebe.com').id)
-    student_2 = Student(user_id=User.get_by_email('student2@fylebe.com').id)
-    teacher_1 = Teacher(user_id=User.get_by_email('teacher1@fylebe.com').id)
-    teacher_2 = Teacher(user_id=User.get_by_email('teacher2@fylebe.com').id)
-
-    db.session.add(student_1)
-    db.session.add(student_2)
-    db.session.add(teacher_1)
-    db.session.add(teacher_2)
-    db.session.flush()
-
-    assignment_1 = Assignment(student_id=student_1.id, content='ESSAY T1')
-    assignment_2 = Assignment(student_id=student_1.id, content='THESIS T1')
-    assignment_3 = Assignment(student_id=student_2.id, content='ESSAY T2')
-    assignment_4 = Assignment(student_id=student_2.id, content='THESIS T2')
-
-    assignment_5 = Assignment(student_id=student_1.id, content='SOLUTION T1')
-
-    db.session.add(assignment_1)
-    db.session.add(assignment_2)
-    db.session.add(assignment_3)
-    db.session.add(assignment_4)
-    db.session.add(assignment_5)
-
-    db.session.flush()
-
-    Assignment.submit(
-        _id=assignment_1.id,
-        teacher_id=teacher_1.id,
-        auth_principal=AuthPrincipal(user_id=student_1.user_id, student_id=student_1.id)
+    # Insert initial data
+    now = datetime.utcnow()
+    users_table = table('users',
+        column('id', Integer),
+        column('email', String),
+        column('username', String),
+        column('created_at', TIMESTAMP),
+        column('updated_at', TIMESTAMP)
     )
 
-    Assignment.submit(
-        _id=assignment_3.id,
-        teacher_id=teacher_2.id,
-        auth_principal=AuthPrincipal(user_id=student_2.user_id, student_id=student_2.id)
+    op.bulk_insert(users_table, [
+        {'id': 1, 'email': 'student1@fylebe.com', 'username': 'student1', 'created_at': now, 'updated_at': now},
+        {'id': 2, 'email': 'student2@fylebe.com', 'username': 'student2', 'created_at': now, 'updated_at': now},
+        {'id': 3, 'email': 'teacher1@fylebe.com', 'username': 'teacher1', 'created_at': now, 'updated_at': now},
+        {'id': 4, 'email': 'teacher2@fylebe.com', 'username': 'teacher2', 'created_at': now, 'updated_at': now}
+    ])
+
+    students_table = table('students',
+        column('id', Integer),
+        column('user_id', Integer),
+        column('created_at', TIMESTAMP),
+        column('updated_at', TIMESTAMP)
     )
 
-    Assignment.submit(
-        _id=assignment_4.id,
-        teacher_id=teacher_2.id,
-        auth_principal=AuthPrincipal(user_id=student_2.user_id, student_id=student_2.id)
+    op.bulk_insert(students_table, [
+        {'id': 1, 'user_id': 1, 'created_at': now, 'updated_at': now},
+        {'id': 2, 'user_id': 2, 'created_at': now, 'updated_at': now}
+    ])
+
+    teachers_table = table('teachers',
+        column('id', Integer),
+        column('user_id', Integer),
+        column('created_at', TIMESTAMP),
+        column('updated_at', TIMESTAMP)
     )
 
-    db.session.commit()
+    op.bulk_insert(teachers_table, [
+        {'id': 1, 'user_id': 3, 'created_at': now, 'updated_at': now},
+        {'id': 2, 'user_id': 4, 'created_at': now, 'updated_at': now}
+    ])
+
+    assignments_table = table('assignments',
+        column('id', Integer),
+        column('student_id', Integer),
+        column('teacher_id', Integer),
+        column('content', Text),
+        column('state', Enum(AssignmentStateEnum)),
+        column('grade', Enum(GradeEnum)),
+        column('created_at', TIMESTAMP),
+        column('updated_at', TIMESTAMP)
+    )
+
+    op.bulk_insert(assignments_table, [
+        {'id': 1, 'student_id': 1, 'teacher_id': 1, 'content': "Assignment 1", 'state': AssignmentStateEnum.SUBMITTED, 'created_at': now, 'updated_at': now},
+        {'id': 2, 'student_id': 1, 'teacher_id': 2, 'content': "Assignment 2", 'state': AssignmentStateEnum.DRAFT, 'created_at': now, 'updated_at': now},
+        {'id': 3, 'student_id': 2, 'teacher_id': 1, 'content': "Assignment 3", 'state': AssignmentStateEnum.SUBMITTED, 'created_at': now, 'updated_at': now},
+        {'id': 4, 'student_id': 2, 'teacher_id': 2, 'content': "Assignment 4", 'state': AssignmentStateEnum.GRADED, 'grade': GradeEnum.B, 'created_at': now, 'updated_at': now},
+        {'id': 5, 'student_id': 1, 'teacher_id': 1, 'content': "Assignment 5", 'state': AssignmentStateEnum.GRADED, 'grade': GradeEnum.B, 'created_at': now, 'updated_at': now},
+        {'id': 6, 'student_id': 2, 'teacher_id': 1, 'content': "Assignment 6", 'state': AssignmentStateEnum.GRADED, 'grade': GradeEnum.B, 'created_at': now, 'updated_at': now},
+        {'id': 7, 'student_id': 1, 'teacher_id': 1, 'content': "Assignment 7", 'state': AssignmentStateEnum.GRADED, 'grade': GradeEnum.B, 'created_at': now, 'updated_at': now},
+        {'id': 8, 'student_id': 1, 'teacher_id': 2, 'content': "Assignment 8", 'state': AssignmentStateEnum.DRAFT, 'created_at': now, 'updated_at': now}
+    ])
     # ### end Alembic commands ###
 
 

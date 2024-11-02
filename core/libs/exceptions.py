@@ -10,3 +10,7 @@ class FyleError(Exception):
         res = dict()
         res['message'] = self.message
         return res
+
+class ValidationError(FyleError):
+    def __init__(self, message="Validation error"):
+        super().__init__(status_code=400, message=message)

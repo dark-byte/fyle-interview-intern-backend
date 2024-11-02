@@ -1,0 +1,51 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.8.18, pytest-6.2.5, py-1.10.0, pluggy-1.0.0 -- /Users/adrish_mitra/Documents/CODE/fyle-interview-intern-backend/env/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/adrish_mitra/Documents/CODE/fyle-interview-intern-backend, configfile: pytest.ini
+plugins: cov-2.12.1
+collecting ... collected 19 items
+
+tests/principals_test.py::test_get_assignments PASSED
+tests/principals_test.py::test_grade_assignment_draft_assignment PASSED
+tests/principals_test.py::test_grade_assignment PASSED
+tests/principals_test.py::test_regrade_assignment PASSED
+tests/students_test.py::test_get_assignments_student_1 PASSED
+tests/students_test.py::test_get_assignments_student_2 PASSED
+tests/students_test.py::test_post_assignment_null_content PASSED
+tests/students_test.py::test_post_assignment_student_1 PASSED
+tests/students_test.py::test_submit_assignment_student_1 PASSED
+tests/students_test.py::test_assignment_resubmit_error PASSED
+tests/teachers_test.py::test_grade_assignment_draft_assignment PASSED
+tests/teachers_test.py::test_get_assignments_teacher_1 PASSED
+tests/teachers_test.py::test_get_assignments_teacher_2 PASSED
+tests/teachers_test.py::test_grade_assignment_cross PASSED
+tests/teachers_test.py::test_grade_assignment_bad_grade PASSED
+tests/teachers_test.py::test_grade_assignment_bad_assignment PASSED
+tests/teachers_test.py::test_grade_assignment PASSED
+tests/SQL/sql_test.py::test_get_assignments_in_graded_state_for_each_student PASSED
+tests/SQL/sql_test.py::test_get_grade_A_assignments_for_teacher_with_max_grading FAILED
+
+=================================== FAILURES ===================================
+__________ test_get_grade_A_assignments_for_teacher_with_max_grading ___________
+
+    def test_get_grade_A_assignments_for_teacher_with_max_grading():
+        """Test to get count of grade A assignments for teacher which has graded maximum assignments"""
+    
+        # Read the SQL query from a file
+        with open('tests/SQL/count_grade_A_assignments_by_teacher_with_max_grading.sql', encoding='utf8') as fo:
+            sql = fo.read()
+    
+        # Create and grade 5 assignments for the default teacher (teacher_id=1)
+        grade_a_count_1 = create_n_graded_assignments_for_teacher(5)
+    
+        # Execute the SQL query and check if the count matches the created assignments
+        sql_result = db.session.execute(text(sql)).fetchall()
+>       assert grade_a_count_1 == sql_result[0][0]
+E       assert 3 == 1
+E         +3
+E         -1
+
+tests/SQL/sql_test.py:93: AssertionError
+=========================== short test summary info ============================
+FAILED tests/SQL/sql_test.py::test_get_grade_A_assignments_for_teacher_with_max_grading
+========================= 1 failed, 18 passed in 0.07s =========================

@@ -7,11 +7,9 @@ Create Date: 2024-01-07 19:15:22.771993
 """
 from alembic import op
 import sqlalchemy as sa
-
-from core import db
-from core.models.users import User
-from core.models.principals import Principal
-
+from sqlalchemy.sql import table, column
+from sqlalchemy import String, Integer, TIMESTAMP
+from datetime import datetime
 
 # revision identifiers, used by Alembic.
 revision = '52a401750a76'
@@ -25,18 +23,36 @@ def upgrade():
     op.create_table('principals',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('created_at', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('updated_at', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False),
+    sa.Column('updated_at', sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    principal_user = User(email='principal@fylebe.com', username='principal')
-    db.session.add(principal_user)
 
-    principal = Principal(user_id=User.get_by_email('principal@fylebe.com').id)
+    # Insert initial data
+    now = datetime.utcnow()
+    users_table = table('users',
+        column('id', Integer),
+        column('email', String),
+        column('username', String),
+        column('created_at', TIMESTAMP),
+        column('updated_at', TIMESTAMP)
+    )
 
-    db.session.add(principal)
-    db.session.commit()
+    op.bulk_insert(users_table, [
+        {'id': 5, 'email': 'principal@fylebe.com', 'username': 'principal', 'created_at': now, 'updated_at': now}
+    ])
+
+    principals_table = table('principals',
+        column('id', Integer),
+        column('user_id', Integer),
+        column('created_at', TIMESTAMP),
+        column('updated_at', TIMESTAMP)
+    )
+
+    op.bulk_insert(principals_table, [
+        {'id': 1, 'user_id': 5, 'created_at': now, 'updated_at': now}
+    ])
     # ### end Alembic commands ###
 
 
