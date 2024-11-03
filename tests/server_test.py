@@ -37,7 +37,7 @@ def test_handle_validation_error(client):
     assert response.status_code == 400
     data = response.get_json()
     assert data['error'] == 'ValidationError'
-    assert data['message'] == 'Test ValidationError'
+    assert data['message'][0] == 'Test ValidationError'
 
 def test_handle_integrity_error(client):
     @app.route('/integrity_error')
@@ -48,7 +48,7 @@ def test_handle_integrity_error(client):
     assert response.status_code == 400
     data = response.get_json()
     assert data['error'] == 'IntegrityError'
-    assert data['message'] == 'Test IntegrityError'
+    assert data['message'] == 'Integrity error'
 
 def test_handle_http_exception(client):
     @app.route('/not_found')

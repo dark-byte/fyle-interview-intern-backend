@@ -45,3 +45,11 @@ def handle_error(err):
         ), err.code
 
     raise err
+
+@app.errorhandler(IntegrityError)
+def handle_integrity_error(err):
+    response = {
+        "error": "IntegrityError",
+        "message": str(err.orig) if err.orig else "Integrity error"
+    }
+    return jsonify(response), 400
